@@ -1,26 +1,10 @@
-package main
+package download
 
 import (
-	"context"
-	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
-
-func TestInputPromptCanBeCancelled(t *testing.T) {
-	reader, writer := io.Pipe()
-	defer reader.Close()
-	defer writer.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-	defer cancel()
-	_, err := readLineContext(ctx, reader)
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
 
 func TestTaskLockReleasesWithoutDeletingDownloads(t *testing.T) {
 	dir := t.TempDir()

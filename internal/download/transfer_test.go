@@ -1,4 +1,4 @@
-package main
+package download
 
 import (
 	"bytes"
@@ -103,7 +103,7 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	}
 	cfg.UploadRateLimiter.SetLimit(rate.Inf)
 	var output bytes.Buffer
-	if err = download(ctx, req, opts, &output); err != nil {
+	if err = Run(ctx, req, opts, &output); err != nil {
 		t.Fatalf("restart: %v\n%s", err, output.String())
 	}
 	actual, err := os.ReadFile(filepath.Join(task, "fixture.bin"))
@@ -115,7 +115,7 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	}
 	// A second restart without a supplied peer verifies existing data and completes locally.
 	opts.Peers = nil
-	if err = download(ctx, req, opts, io.Discard); err != nil {
+	if err = Run(ctx, req, opts, io.Discard); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -174,7 +174,7 @@ func TestED2KRealPeerTransferAndRestart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	var output bytes.Buffer
-	if err = download(ctx, req, opts, &output); err != nil {
+	if err = Run(ctx, req, opts, &output); err != nil {
 		t.Fatalf("ED2K transfer: %v\n%s", err, output.String())
 	}
 	target := filepath.Join(opts.Dir, "ed2k-"+req.ID, "fixture.bin")
@@ -186,7 +186,7 @@ func TestED2KRealPeerTransferAndRestart(t *testing.T) {
 		t.Fatal("ED2K payload mismatch")
 	}
 	opts.Peers = nil
-	if err = download(ctx, req, opts, io.Discard); err != nil {
+	if err = Run(ctx, req, opts, io.Discard); err != nil {
 		t.Fatalf("ED2K restart failed: %v", err)
 	}
 }
