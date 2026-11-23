@@ -14,30 +14,30 @@ cd p2pget
 没有 GitHub CLI 时，可使用 `git clone https://github.com/qiuxsgit/p2pget.git`。然后运行：
 
 ```sh
-go run . "完整下载地址"
+go run ./cmd/p2pget "完整下载地址"
 ```
 
 也可以不传地址，启动后粘贴：
 
 ```sh
-go run .
+go run ./cmd/p2pget
 ```
 
 指定下载目录或节点上限：
 
 ```sh
-go run . --dir ./downloads --connections 600 "magnet:?xt=urn:btih:完整哈希"
-go run . --dir ./downloads "ed2k://|file|文件名|字节数|文件哈希|/"
-go run . --dir ./downloads ./example.torrent
+go run ./cmd/p2pget --dir ./downloads --connections 600 "magnet:?xt=urn:btih:完整哈希"
+go run ./cmd/p2pget --dir ./downloads "ed2k://|file|文件名|字节数|文件哈希|/"
+go run ./cmd/p2pget --dir ./downloads ./example.torrent
 ```
 
-所有参数放在地址之前，完整链接用引号包住。项目包含多个 `.go` 文件，所以请用 `go run .`。
-首次运行时 Go 会下载 `go.mod` 中固定的依赖；后续会使用本机缓存。如果本机没有 C 编译环境，可使用 `CGO_ENABLED=0 go run . "完整下载地址"`。
+所有参数放在地址之前，完整链接用引号包住。入口位于 `cmd/p2pget`。
+首次运行时 Go 会下载 `go.mod` 中固定的依赖；后续会使用本机缓存。如果本机没有 C 编译环境，可使用 `CGO_ENABLED=0 go run ./cmd/p2pget "完整下载地址"`。
 
 终端里进度按窗口宽度自动缩短、原地刷新。写入日志文件时，每次进度更新单独成行，不包含光标控制字符：
 
 ```sh
-go run . "完整下载地址" > download.log 2>&1
+go run ./cmd/p2pget "完整下载地址" > download.log 2>&1
 ```
 
 速度显示采用最近约三秒的数据平均值，减少网络分块到达时速度在零和瞬间峰值之间跳动。诊断信息会先结束当前进度行，再输出到新行。
@@ -51,7 +51,7 @@ go run . "完整下载地址" > download.log 2>&1
 默认节点连接上限 300、下载不限速。可按需要提高，例如：
 
 ```sh
-go run . --connections 600 --upload 512 --dir ./downloads "完整链接"
+go run ./cmd/p2pget --connections 600 --upload 512 --dir ./downloads "完整链接"
 ```
 
 `--upload` 单位 KiB/s，默认 256，0 表示不限速。下载过程中会上传已获得的分块，任务完成后退出。节点数是上限，实际速度取决于在线来源、对方带宽、排队及网络可达性，提高上限不保证提速。
@@ -65,12 +65,12 @@ go run . --connections 600 --upload 512 --dir ./downloads "完整链接"
 常用选项：
 
 ```sh
-go run . --server "服务器地址:端口" --kad-nodes ./nodes.dat "ed2k://..."
-go run . --peer "已知节点:端口" --no-discovery "完整链接"
-go run . --timeout 10m "完整链接"
-go run . --verbose "完整链接"
-go run . --help
-go run . --version
+go run ./cmd/p2pget --server "服务器地址:端口" --kad-nodes ./nodes.dat "ed2k://..."
+go run ./cmd/p2pget --peer "已知节点:端口" --no-discovery "完整链接"
+go run ./cmd/p2pget --timeout 10m "完整链接"
+go run ./cmd/p2pget --verbose "完整链接"
+go run ./cmd/p2pget --help
+go run ./cmd/p2pget --version
 ```
 
 `--server`、`--peer`、`--tracker` 可重复使用。`--no-discovery` 关闭自动找源，只用于有已知直连节点的情况。`--timeout` 到时保存进度退出，默认不限时。服务器和引导节点可能离线，可自行指定新的地址。网络限制、低 ID 或排队会影响 ED2K 的速度和可用性。工具不修改路由器或系统网络配置。
@@ -85,10 +85,10 @@ go run . --version
 
 ```sh
 go test ./...
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o p2pget .
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o p2pget ./cmd/p2pget
 ```
 
-PowerShell 可先设置 `$env:CGO_ENABLED="0"`，再运行 `go build -trimpath -ldflags="-s -w" -o p2pget.exe .`。
+PowerShell 可先设置 `$env:CGO_ENABLED="0"`，再运行 `go build -trimpath -ldflags="-s -w" -o p2pget.exe ./cmd/p2pget`。
 
 源码包含 `third_party/goed2k` 的必要修订，详见 `PATCHES.md`；其余依赖由 `go.mod` 和 `go.sum` 固定。第三方版权和许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 `THIRD_PARTY_LICENSES`。BT 内核的对应源码可从 https://github.com/anacrolix/torrent/tree/v1.63.0 取得；内嵌 ED2K 修订源码随源码包提供。
 
