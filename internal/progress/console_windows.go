@@ -1,10 +1,10 @@
 //go:build windows
 
-package main
+package progress
 
 import "golang.org/x/sys/windows"
 
-func configureConsole() {
+func ConfigureConsole() {
 	kernel := windows.NewLazySystemDLL("kernel32.dll")
 	kernel.NewProc("SetConsoleOutputCP").Call(65001)
 	kernel.NewProc("SetConsoleCP").Call(65001)

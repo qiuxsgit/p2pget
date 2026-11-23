@@ -1,4 +1,5 @@
-package main
+// Package progress renders download status to a terminal or plain log output.
+package progress
 
 import (
 	"context"
@@ -6,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 	"unicode"
@@ -90,7 +90,7 @@ func wrappedProgressRows(text string, columns int) int {
 	return rows
 }
 
-type progressPrinter struct {
+type Printer struct {
 	mu       sync.Mutex
 	out      io.Writer
 	terminal bool
@@ -99,8 +99,8 @@ type progressPrinter struct {
 	lastText string
 }
 
-func newProgressPrinter(out io.Writer) *progressPrinter {
-	printer := &progressPrinter{out: out, columns: func() int { return 120 }}
+func NewPrinter(out io.Writer) *Printer {
+	printer := &Printer{out: out, columns: func() int { return 120 }}
 	if file, ok := out.(interface{ Fd() uintptr }); ok && os.Getenv("TERM") != "dumb" && term.IsTerminal(int(file.Fd())) && enableProgressANSI(file.Fd()) {
 		printer.terminal = true
 		printer.columns = func() int {
@@ -114,7 +114,7 @@ func newProgressPrinter(out io.Writer) *progressPrinter {
 	return printer
 }
 
-func (p *progressPrinter) Render(status engine.Progress) {
+func (p *Printer) Render(status engine.Progress) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	width := p.columns()
@@ -139,19 +139,24 @@ func (p *progressPrinter) Render(status engine.Progress) {
 	p.lastText = line
 }
 
-func (p *progressPrinter) finishLocked() {
+func (p *Printer) finishLocked() {
 	if p.active {
 		fmt.Fprintln(p.out)
 		p.active = false
 		p.lastText = ""
 	}
 }
-func (p *progressPrinter) Finish() { p.mu.Lock(); defer p.mu.Unlock(); p.finishLocked() }
+func (p *Printer) Finish() { p.mu.Lock(); defer p.mu.Unlock(); p.finishLocked() }
 
 // Engine diagnostics terminate the current progress row before writing their own record.
 type progressLogHandler struct {
-	printer *progressPrinter
+	printer *Printer
 	handler slog.Handler
+}
+
+// NewLogHandler wraps h so each record first ends the printer's in-place progress row.
+func NewLogHandler(p *Printer, h slog.Handler) slog.Handler {
+	return &progressLogHandler{printer: p, handler: h}
 }
 
 func (h *progressLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -174,9 +179,9 @@ type speedSample struct {
 	at       time.Time
 	received int64
 }
-type speedMeter struct{ samples []speedSample }
+type SpeedMeter struct{ samples []speedSample }
 
-func (m *speedMeter) Observe(now time.Time, received int64) int64 {
+func (m *SpeedMeter) Observe(now time.Time, received int64) int64 {
 	if len(m.samples) > 0 {
 		last := m.samples[len(m.samples)-1]
 		if now.Before(last.at) || received < last.received {
@@ -194,12 +199,4 @@ func (m *speedMeter) Observe(now time.Time, received int64) int64 {
 		return 0
 	}
 	return max(0, int64(float64(received-first.received)/seconds))
-}
-
-func defaultDownloadDir() (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(cwd, "downloads"), nil
 }

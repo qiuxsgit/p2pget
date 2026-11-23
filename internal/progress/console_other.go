@@ -1,7 +1,7 @@
 //go:build !windows
 
-package main
+package progress
 
-func configureConsole() {}
+func ConfigureConsole() {}
 
 func enableProgressANSI(fd uintptr) bool { return true }

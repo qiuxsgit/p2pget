@@ -18,6 +18,7 @@ import (
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/fsutil"
 	"github.com/qiuxsgit/p2pget/internal/link"
+	"github.com/qiuxsgit/p2pget/internal/progress"
 )
 
 const version = "0.1.1"
@@ -28,7 +29,7 @@ func (s *stringFlags) String() string         { return strings.Join(*s, ",") }
 func (s *stringFlags) Set(value string) error { *s = append(*s, value); return nil }
 
 func main() {
-	configureConsole()
+	progress.ConfigureConsole()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	code := cli(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
@@ -155,10 +156,10 @@ func download(ctx context.Context, req link.Request, opts engine.Options, out io
 	} else {
 		fmt.Fprintln(out, "下载期间上传不限速；完成后停止。")
 	}
-	printer := newProgressPrinter(out)
+	printer := progress.NewPrinter(out)
 	defer printer.Finish()
 	if opts.Logger != nil {
-		opts.Logger = slog.New(&progressLogHandler{printer: printer, handler: opts.Logger.Handler()})
+		opts.Logger = slog.New(progress.NewLogHandler(printer, opts.Logger.Handler()))
 		previousLogger := slog.Default()
 		slog.SetDefault(opts.Logger)
 		defer slog.SetDefault(previousLogger)
@@ -179,7 +180,7 @@ func download(ctx context.Context, req link.Request, opts engine.Options, out io
 	}()
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
-	meter := speedMeter{}
+	meter := progress.SpeedMeter{}
 	lastPaint := time.Time{}
 	for {
 		p, err := job.Progress()

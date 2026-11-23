@@ -1,11 +1,9 @@
-package main
+package progress
 
 import (
 	"bytes"
 	"context"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -45,7 +43,7 @@ func TestProgressFitsNarrowTerminal(t *testing.T) {
 
 func TestProgressTerminalClearsLineAndEndsOnce(t *testing.T) {
 	var out bytes.Buffer
-	printer := &progressPrinter{out: &out, terminal: true, columns: func() int { return 80 }}
+	printer := &Printer{out: &out, terminal: true, columns: func() int { return 80 }}
 	printer.Render(sampleProgress())
 	p := sampleProgress()
 	p.Peers = 1
@@ -63,7 +61,7 @@ func TestProgressTerminalClearsLineAndEndsOnce(t *testing.T) {
 func TestProgressResizeRemovesWrappedPreviousFrame(t *testing.T) {
 	var out bytes.Buffer
 	width := 120
-	printer := &progressPrinter{out: &out, terminal: true, columns: func() int { return width }}
+	printer := &Printer{out: &out, terminal: true, columns: func() int { return width }}
 	printer.Render(sampleProgress())
 	out.Reset()
 	width = 20
@@ -79,7 +77,7 @@ func TestProgressResizeRemovesWrappedPreviousFrame(t *testing.T) {
 
 func TestProgressRedirectedOutputUsesPlainLines(t *testing.T) {
 	var out bytes.Buffer
-	printer := newProgressPrinter(&out)
+	printer := NewPrinter(&out)
 	printer.Render(sampleProgress())
 	printer.Render(sampleProgress())
 	printer.Finish()
@@ -93,7 +91,7 @@ func TestProgressRedirectedOutputUsesPlainLines(t *testing.T) {
 
 func TestProgressDiagnosticsStartOnNewLine(t *testing.T) {
 	var out bytes.Buffer
-	printer := &progressPrinter{out: &out, terminal: true, columns: func() int { return 80 }}
+	printer := &Printer{out: &out, terminal: true, columns: func() int { return 80 }}
 	logger := slog.New(&progressLogHandler{printer: printer, handler: slog.NewTextHandler(&out, nil)})
 	printer.Render(sampleProgress())
 	logger.ErrorContext(context.Background(), "diagnostic")
@@ -103,7 +101,7 @@ func TestProgressDiagnosticsStartOnNewLine(t *testing.T) {
 }
 
 func TestRateUsesWindowRatherThanLastPollingTick(t *testing.T) {
-	meter := speedMeter{}
+	meter := SpeedMeter{}
 	start := time.Unix(1, 0)
 	meter.Observe(start, 0)
 	meter.Observe(start.Add(100*time.Millisecond), 1<<20)
@@ -122,24 +120,10 @@ func TestRateUsesWindowRatherThanLastPollingTick(t *testing.T) {
 	}
 }
 
-func TestDefaultDownloadDirSurvivesGoRun(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := defaultDownloadDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != filepath.Join(cwd, "downloads") {
-		t.Fatalf("default directory is not relative to the working directory: %s", got)
-	}
-}
-
 func TestProgressResizeAccountsForWideCharacterPadding(t *testing.T) {
 	var out bytes.Buffer
 	width := 120
-	printer := &progressPrinter{out: &out, terminal: true, columns: func() int { return width }}
+	printer := &Printer{out: &out, terminal: true, columns: func() int { return width }}
 	p := sampleProgress()
 	p.Phase = "寻找 / 排队"
 	p.Rate = 100 << 20
