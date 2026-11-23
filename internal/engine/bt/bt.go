@@ -1,4 +1,5 @@
-package main
+// Package bt downloads torrents and magnet links with anacrolix/torrent.
+package bt
 
 import (
 	"bytes"
@@ -25,7 +26,7 @@ var defaultTrackers = []string{
 	"http://tracker.opentrackr.org:1337/announce",
 }
 
-type btJob struct {
+type Job struct {
 	client       *torrent.Client
 	torrent      *torrent.Torrent
 	storage      storage.ClientImplCloser
@@ -33,7 +34,7 @@ type btJob struct {
 	prepared     bool
 }
 
-func newBTJob(req link.Request, opts engine.Options, taskDir, stateDir string) (*btJob, error) {
+func New(req link.Request, opts engine.Options, taskDir, stateDir string) (*Job, error) {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = taskDir
 	cfg.ListenPort = 0
@@ -85,10 +86,10 @@ func newBTJob(req link.Request, opts engine.Options, taskDir, stateDir string) (
 		return nil, err
 	}
 	t.SetMaxEstablishedConns(opts.Connections)
-	return &btJob{client: client, torrent: t, storage: st, metadataPath: metadataPath}, nil
+	return &Job{client: client, torrent: t, storage: st, metadataPath: metadataPath}, nil
 }
 
-func (j *btJob) Progress() (engine.Progress, error) {
+func (j *Job) Progress() (engine.Progress, error) {
 	t := j.torrent
 	select {
 	case <-t.GotInfo():
@@ -123,7 +124,7 @@ func (j *btJob) Progress() (engine.Progress, error) {
 	return p, nil
 }
 
-func (j *btJob) Verify(ctx context.Context) error {
+func (j *Job) Verify(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -132,7 +133,7 @@ func (j *btJob) Verify(ctx context.Context) error {
 	}
 	return nil
 }
-func (j *btJob) Close() error {
+func (j *Job) Close() error {
 	errs := j.client.Close()
 	err := j.storage.Close()
 	if len(errs) > 0 {

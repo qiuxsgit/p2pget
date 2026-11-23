@@ -16,6 +16,7 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 	goed2k "github.com/goed2k/core"
 	"github.com/qiuxsgit/p2pget/internal/engine"
+	"github.com/qiuxsgit/p2pget/internal/engine/bt"
 	"github.com/qiuxsgit/p2pget/internal/link"
 	"golang.org/x/time/rate"
 )
@@ -76,7 +77,7 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	task := filepath.Join(opts.Dir, "bt-"+req.ID)
 	state := filepath.Join(task, ".p2pget")
 	os.MkdirAll(state, 0755)
-	job, err := newBTJob(req, opts, task, state)
+	job, err := bt.New(req, opts, task, state)
 	if err != nil {
 		t.Fatal(err)
 	}
