@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 	"unicode"
+
+	"github.com/qiuxsgit/p2pget/internal/engine"
 )
 
 // The progress vocabulary contains ASCII and Chinese, so this independent
@@ -25,8 +27,8 @@ func testCells(value string) int {
 	}
 	return n
 }
-func sampleProgress() progress {
-	return progress{Phase: "下载 / 校验", Done: 1234567890, Total: 9264506880, Peers: 142, Known: 184, Servers: 4, Kad: 175, Rate: 1234567}
+func sampleProgress() engine.Progress {
+	return engine.Progress{Phase: "下载 / 校验", Done: 1234567890, Total: 9264506880, Peers: 142, Known: 184, Servers: 4, Kad: 175, Rate: 1234567}
 }
 
 func TestProgressFitsNarrowTerminal(t *testing.T) {

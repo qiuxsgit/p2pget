@@ -14,6 +14,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/qiuxsgit/p2pget/internal/engine"
+	"github.com/qiuxsgit/p2pget/internal/fsutil"
+	"github.com/qiuxsgit/p2pget/internal/link"
 )
 
 const version = "0.1.1"
@@ -22,31 +26,6 @@ type stringFlags []string
 
 func (s *stringFlags) String() string         { return strings.Join(*s, ",") }
 func (s *stringFlags) Set(value string) error { *s = append(*s, value); return nil }
-
-type options struct {
-	Dir                      string
-	Connections              int
-	UploadKiB                int
-	Timeout                  time.Duration
-	NoDiscovery              bool
-	Servers, Peers, Trackers stringFlags
-	KadNodes                 string
-	Logger                   *slog.Logger
-}
-
-type progress struct {
-	Phase                      string
-	Done, Total                int64
-	Received                   int64
-	Peers, Known, Servers, Kad int
-	Rate                       int64
-}
-
-type downloadJob interface {
-	Progress() (progress, error)
-	Verify(context.Context) error
-	Close() error
-}
 
 func main() {
 	configureConsole()
@@ -59,16 +38,16 @@ func main() {
 func cli(ctx context.Context, args []string, in io.Reader, out, errOut io.Writer) int {
 	flags := flag.NewFlagSet("p2pget", flag.ContinueOnError)
 	flags.SetOutput(errOut)
-	opts := options{}
+	opts := engine.Options{}
 	flags.StringVar(&opts.Dir, "dir", "", "下载根目录，默认是当前目录下的 downloads")
 	flags.StringVar(&opts.Dir, "o", "", "-dir 的简写")
 	flags.IntVar(&opts.Connections, "connections", 300, "最大节点连接数（1–2000）")
 	flags.IntVar(&opts.UploadKiB, "upload", 256, "上传上限 KiB/s，0 表示不限速")
 	flags.DurationVar(&opts.Timeout, "timeout", 0, "本次最多运行时间，例如 10m；0 表示不限时")
 	flags.BoolVar(&opts.NoDiscovery, "no-discovery", false, "关闭自动找源，仅使用手动指定的节点")
-	flags.Var(&opts.Servers, "server", "ED2K 服务器 host:port，可重复指定")
-	flags.Var(&opts.Peers, "peer", "直接连接已知文件节点 host:port，可重复指定")
-	flags.Var(&opts.Trackers, "tracker", "附加 BT Tracker 地址，可重复指定")
+	flags.Var((*stringFlags)(&opts.Servers), "server", "ED2K 服务器 host:port，可重复指定")
+	flags.Var((*stringFlags)(&opts.Peers), "peer", "直接连接已知文件节点 host:port，可重复指定")
+	flags.Var((*stringFlags)(&opts.Trackers), "tracker", "附加 BT Tracker 地址，可重复指定")
 	flags.StringVar(&opts.KadNodes, "kad-nodes", "", "ED2K Kad nodes.dat 文件路径或 HTTPS 地址")
 	showVersion := flags.Bool("version", false, "显示版本")
 	verbose := flags.Bool("verbose", false, "显示内核诊断信息")
@@ -110,7 +89,7 @@ func cli(ctx context.Context, args []string, in io.Reader, out, errOut io.Writer
 		}
 		value = line
 	}
-	req, err := parseInput(value)
+	req, err := link.Parse(value)
 	if err != nil {
 		fmt.Fprintln(errOut, "错误：", err)
 		return 2
@@ -157,7 +136,7 @@ func cli(ctx context.Context, args []string, in io.Reader, out, errOut io.Writer
 	return code
 }
 
-func download(ctx context.Context, req request, opts options, out io.Writer) (retErr error) {
+func download(ctx context.Context, req link.Request, opts engine.Options, out io.Writer) (retErr error) {
 	taskDir := filepath.Join(opts.Dir, req.Kind+"-"+req.ID)
 	stateDir := filepath.Join(taskDir, ".p2pget")
 	release, err := acquireTaskLock(stateDir)
@@ -165,7 +144,7 @@ func download(ctx context.Context, req request, opts options, out io.Writer) (re
 		return err
 	}
 	defer release()
-	if err = atomicWrite(filepath.Join(stateDir, "link.txt"), []byte(req.Raw+"\n")); err != nil {
+	if err = fsutil.AtomicWrite(filepath.Join(stateDir, "link.txt"), []byte(req.Raw+"\n")); err != nil {
 		return err
 	}
 	fmt.Fprintf(out, "协议：%s  |  连接上限：%d  |  下载不限速\n", strings.ToUpper(req.Kind), opts.Connections)
@@ -184,7 +163,7 @@ func download(ctx context.Context, req request, opts options, out io.Writer) (re
 		slog.SetDefault(opts.Logger)
 		defer slog.SetDefault(previousLogger)
 	}
-	var job downloadJob
+	var job engine.Job
 	if req.Kind == "bt" {
 		job, err = newBTJob(req, opts, taskDir, stateDir)
 	} else {

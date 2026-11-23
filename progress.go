@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/qiuxsgit/p2pget/internal/engine"
 	"golang.org/x/term"
 )
 
@@ -27,7 +28,7 @@ func progressCells(text string) int {
 	return cells
 }
 
-func formatProgress(p progress, columns int) string {
+func formatProgress(p engine.Progress, columns int) string {
 	if columns <= 0 {
 		columns = 80
 	}
@@ -113,7 +114,7 @@ func newProgressPrinter(out io.Writer) *progressPrinter {
 	return printer
 }
 
-func (p *progressPrinter) Render(status progress) {
+func (p *progressPrinter) Render(status engine.Progress) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	width := p.columns()

@@ -19,6 +19,9 @@ import (
 	goed2k "github.com/goed2k/core"
 	"github.com/goed2k/core/disk"
 	"github.com/goed2k/core/protocol"
+	"github.com/qiuxsgit/p2pget/internal/engine"
+	"github.com/qiuxsgit/p2pget/internal/fsutil"
+	"github.com/qiuxsgit/p2pget/internal/link"
 )
 
 var defaultEDServers = []string{"176.123.5.89:4725", "176.125.242.230:5555", "176.116.0.51:6555", "91.208.162.87:4232"}
@@ -26,7 +29,7 @@ var defaultEDServers = []string{"176.123.5.89:4725", "176.125.242.230:5555", "17
 type ed2kJob struct {
 	client             *goed2k.Client
 	handle             goed2k.TransferHandle
-	req                request
+	req                link.Request
 	path               string
 	cancel             context.CancelFunc
 	workers            sync.WaitGroup
@@ -38,7 +41,7 @@ type ed2kJob struct {
 type taskEDStore struct {
 	ctx                    context.Context
 	path, target, identity string
-	req                    request
+	req                    link.Request
 	discovery              bool
 }
 
@@ -82,10 +85,10 @@ func (s *taskEDStore) Save(state *goed2k.ClientState) error {
 	if err != nil {
 		return err
 	}
-	return atomicWrite(s.path, raw)
+	return fsutil.AtomicWrite(s.path, raw)
 }
 
-func newED2KJob(ctx context.Context, req request, opts options, taskDir, stateDir string) (*ed2kJob, error) {
+func newED2KJob(ctx context.Context, req link.Request, opts engine.Options, taskDir, stateDir string) (*ed2kJob, error) {
 	jobCtx, cancel := context.WithCancel(ctx)
 	initialized := false
 	defer func() {
@@ -244,7 +247,7 @@ func bootstrapKad(ctx context.Context, client *goed2k.Client, source, stateDir s
 			if readErr != nil || response.StatusCode != http.StatusOK || len(raw) > 2<<20 {
 				continue
 			}
-			if err = atomicWrite(cache, raw); err != nil {
+			if err = fsutil.AtomicWrite(cache, raw); err != nil {
 				continue
 			}
 			path = cache
@@ -263,7 +266,7 @@ func bootstrapKad(ctx context.Context, client *goed2k.Client, source, stateDir s
 	}
 }
 
-func (j *ed2kJob) Progress() (progress, error) {
+func (j *ed2kJob) Progress() (engine.Progress, error) {
 drain:
 	for n := 0; n < 32; n++ {
 		select {
@@ -279,15 +282,15 @@ drain:
 	j.lastTick = now
 	if now.Sub(j.lastSave) >= 15*time.Second {
 		if err := j.client.SaveState(""); err != nil {
-			return progress{}, err
+			return engine.Progress{}, err
 		}
 		j.lastSave = now
 	}
 	status := j.handle.GetStatus()
 	if status.Paused {
-		return progress{}, fmt.Errorf("ED2K 任务异常暂停，请检查剩余磁盘空间和目录写入权限")
+		return engine.Progress{}, fmt.Errorf("ED2K 任务异常暂停，请检查剩余磁盘空间和目录写入权限")
 	}
-	p := progress{Phase: "寻找 / 排队", Done: status.TotalDone, Total: j.req.Size, Received: status.TotalReceived, Peers: j.handle.ActiveConnections(), Known: status.NumPeers, Rate: int64(status.DownloadRate)}
+	p := engine.Progress{Phase: "寻找 / 排队", Done: status.TotalDone, Total: j.req.Size, Received: status.TotalReceived, Peers: j.handle.ActiveConnections(), Known: status.NumPeers, Rate: int64(status.DownloadRate)}
 	if status.DownloadRate > 0 {
 		p.Phase = "下载中"
 	}
@@ -387,7 +390,7 @@ func hashED2KFile(ctx context.Context, path string) (protocol.Hash, int64, []pro
 	return protocol.HashFromHashSet(hashes), size, hashes, nil
 }
 
-func checkResumePieces(ctx context.Context, transfer *goed2k.ClientTransferState, target string, req request) error {
+func checkResumePieces(ctx context.Context, transfer *goed2k.ClientTransferState, target string, req link.Request) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}

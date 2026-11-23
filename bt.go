@@ -10,6 +10,9 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
+	"github.com/qiuxsgit/p2pget/internal/engine"
+	"github.com/qiuxsgit/p2pget/internal/fsutil"
+	"github.com/qiuxsgit/p2pget/internal/link"
 	"golang.org/x/time/rate"
 )
 
@@ -30,7 +33,7 @@ type btJob struct {
 	prepared     bool
 }
 
-func newBTJob(req request, opts options, taskDir, stateDir string) (*btJob, error) {
+func newBTJob(req link.Request, opts engine.Options, taskDir, stateDir string) (*btJob, error) {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = taskDir
 	cfg.ListenPort = 0
@@ -57,7 +60,7 @@ func newBTJob(req request, opts options, taskDir, stateDir string) (*btJob, erro
 	metadataPath := filepath.Join(stateDir, "metadata.torrent")
 	if mi, err := metainfo.LoadFromFile(metadataPath); err == nil {
 		if cached, err := torrent.TorrentSpecFromMetaInfoErr(mi); err == nil {
-			if r, err := btRequest(cached, req.Raw); err == nil && r.ID == req.ID {
+			if r, err := link.FromTorrentSpec(cached, req.Raw); err == nil && r.ID == req.ID {
 				cached.Trackers = append(cached.Trackers, spec.Trackers...)
 				cached.PeerAddrs = append(cached.PeerAddrs, spec.PeerAddrs...)
 				spec = *cached
@@ -85,24 +88,24 @@ func newBTJob(req request, opts options, taskDir, stateDir string) (*btJob, erro
 	return &btJob{client: client, torrent: t, storage: st, metadataPath: metadataPath}, nil
 }
 
-func (j *btJob) Progress() (progress, error) {
+func (j *btJob) Progress() (engine.Progress, error) {
 	t := j.torrent
 	select {
 	case <-t.GotInfo():
 		if !j.prepared {
-			if err := validateTorrentInfo(t.Info()); err != nil {
-				return progress{}, err
+			if err := link.ValidateTorrentInfo(t.Info()); err != nil {
+				return engine.Progress{}, err
 			}
 			mi := t.Metainfo()
 			var buf bytes.Buffer
 			if err := mi.Write(&buf); err != nil {
-				return progress{}, err
+				return engine.Progress{}, err
 			}
-			if err := atomicWrite(j.metadataPath, buf.Bytes()); err != nil {
-				return progress{}, err
+			if err := fsutil.AtomicWrite(j.metadataPath, buf.Bytes()); err != nil {
+				return engine.Progress{}, err
 			}
 			if err := t.OpenStorage(context.Background(), nil); err != nil {
-				return progress{}, err
+				return engine.Progress{}, err
 			}
 			t.AllowDataDownload()
 			t.DownloadAll()
@@ -110,10 +113,10 @@ func (j *btJob) Progress() (progress, error) {
 		}
 	default:
 		s := t.Stats()
-		return progress{Phase: "获取种子", Peers: s.ActivePeers, Known: s.TotalPeers, Received: s.BytesReadData.Int64()}, nil
+		return engine.Progress{Phase: "获取种子", Peers: s.ActivePeers, Known: s.TotalPeers, Received: s.BytesReadData.Int64()}, nil
 	}
 	s := t.Stats()
-	p := progress{Phase: "下载 / 校验", Done: t.BytesCompleted(), Total: t.Length(), Received: s.BytesReadData.Int64(), Peers: s.ActivePeers, Known: s.TotalPeers}
+	p := engine.Progress{Phase: "下载 / 校验", Done: t.BytesCompleted(), Total: t.Length(), Received: s.BytesReadData.Int64(), Peers: s.ActivePeers, Known: s.TotalPeers}
 	if t.Complete().Bool() {
 		p.Phase = "已完成"
 	}

@@ -12,6 +12,7 @@ import (
 
 	goed2k "github.com/goed2k/core"
 	"github.com/goed2k/core/protocol"
+	"github.com/qiuxsgit/p2pget/internal/link"
 )
 
 func TestED2KResumeDoesNotTrustChangedOrMissingFiles(t *testing.T) {
@@ -19,7 +20,7 @@ func TestED2KResumeDoesNotTrustChangedOrMissingFiles(t *testing.T) {
 	target := filepath.Join(root, "payload.bin")
 	payload := []byte("verified bytes")
 	hash, _ := protocol.HashFromData(payload)
-	req, err := parseInput(goed2k.FormatLink("payload.bin", int64(len(payload)), hash))
+	req, err := link.Parse(goed2k.FormatLink("payload.bin", int64(len(payload)), hash))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,5 +62,30 @@ func TestInputPromptCanBeCancelled(t *testing.T) {
 	_, err := readLineContext(ctx, reader)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTaskLockReleasesWithoutDeletingDownloads(t *testing.T) {
+	dir := t.TempDir()
+	release, err := acquireTaskLock(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if release2, err := acquireTaskLock(dir); err == nil {
+		release2()
+		t.Fatal("duplicate writer acquired lock")
+	}
+	marker := filepath.Join(dir, "keep.iso")
+	if err := os.WriteFile(marker, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	release()
+	release, err = acquireTaskLock(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release()
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatal("lock cleanup removed existing payload")
 	}
 }

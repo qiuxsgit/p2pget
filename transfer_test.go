@@ -15,11 +15,13 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	goed2k "github.com/goed2k/core"
+	"github.com/qiuxsgit/p2pget/internal/engine"
+	"github.com/qiuxsgit/p2pget/internal/link"
 	"golang.org/x/time/rate"
 )
 
-func testOptions(dir string) options {
-	return options{Dir: dir, Connections: 30, UploadKiB: 256, NoDiscovery: true, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+func testOptions(dir string) engine.Options {
+	return engine.Options{Dir: dir, Connections: 30, UploadKiB: 256, NoDiscovery: true, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
 }
 
 func TestBTPartialDownloadAndRestart(t *testing.T) {
@@ -65,7 +67,7 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	if err = seedTorrent.VerifyDataContext(ctx); err != nil {
 		t.Fatal(err)
 	}
-	req, err := parseInput("magnet:?xt=urn:btih:" + mi.HashInfoBytes().HexString())
+	req, err := link.Parse("magnet:?xt=urn:btih:" + mi.HashInfoBytes().HexString())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +163,7 @@ func TestED2KRealPeerTransferAndRestart(t *testing.T) {
 	}()
 	defer func() { close(seedStop); <-seedDone; seed.Session().FlushDiskTasks() }()
 
-	req, err := parseInput(goed2k.FormatLink("fixture.bin", size, hash))
+	req, err := link.Parse(goed2k.FormatLink("fixture.bin", size, hash))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +231,7 @@ func TestED2KPartialResumeWhileUploading(t *testing.T) {
 		}
 	}()
 	defer func() { close(stop); <-done; seed.Session().FlushDiskTasks(); seed.Close() }()
-	req, err := parseInput(goed2k.FormatLink("large.bin", size, hash))
+	req, err := link.Parse(goed2k.FormatLink("large.bin", size, hash))
 	if err != nil {
 		t.Fatal(err)
 	}
