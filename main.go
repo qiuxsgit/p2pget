@@ -17,6 +17,7 @@ import (
 
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/engine/bt"
+	"github.com/qiuxsgit/p2pget/internal/engine/ed2k"
 	"github.com/qiuxsgit/p2pget/internal/fsutil"
 	"github.com/qiuxsgit/p2pget/internal/link"
 	"github.com/qiuxsgit/p2pget/internal/progress"
@@ -169,7 +170,7 @@ func download(ctx context.Context, req link.Request, opts engine.Options, out io
 	if req.Kind == "bt" {
 		job, err = bt.New(req, opts, taskDir, stateDir)
 	} else {
-		job, err = newED2KJob(ctx, req, opts, taskDir, stateDir)
+		job, err = ed2k.New(ctx, req, opts, taskDir, stateDir)
 	}
 	if err != nil {
 		return err

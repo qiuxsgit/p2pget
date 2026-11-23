@@ -1,4 +1,5 @@
-package main
+// Package ed2k downloads ed2k:// file links with goed2k.
+package ed2k
 
 import (
 	"context"
@@ -26,7 +27,7 @@ import (
 
 var defaultEDServers = []string{"176.123.5.89:4725", "176.125.242.230:5555", "176.116.0.51:6555", "91.208.162.87:4232"}
 
-type ed2kJob struct {
+type Job struct {
 	client             *goed2k.Client
 	handle             goed2k.TransferHandle
 	req                link.Request
@@ -88,7 +89,7 @@ func (s *taskEDStore) Save(state *goed2k.ClientState) error {
 	return fsutil.AtomicWrite(s.path, raw)
 }
 
-func newED2KJob(ctx context.Context, req link.Request, opts engine.Options, taskDir, stateDir string) (*ed2kJob, error) {
+func New(ctx context.Context, req link.Request, opts engine.Options, taskDir, stateDir string) (*Job, error) {
 	jobCtx, cancel := context.WithCancel(ctx)
 	initialized := false
 	defer func() {
@@ -132,7 +133,7 @@ func newED2KJob(ctx context.Context, req link.Request, opts engine.Options, task
 	if err := client.LoadState(""); err != nil {
 		return nil, fmt.Errorf("恢复 ED2K 状态失败：%w", err)
 	}
-	if err := startEDSession(client, !opts.NoDiscovery); err != nil {
+	if err := StartSession(client, !opts.NoDiscovery); err != nil {
 		client.Close()
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func newED2KJob(ctx context.Context, req link.Request, opts engine.Options, task
 	} else {
 		handle.Resume()
 	}
-	job := &ed2kJob{client: client, handle: handle, req: req, path: target, cancel: cancel, actions: make(chan func(), 32), lastTick: time.Now(), lastSave: time.Now()}
+	job := &Job{client: client, handle: handle, req: req, path: target, cancel: cancel, actions: make(chan func(), 32), lastTick: time.Now(), lastSave: time.Now()}
 	for _, address := range opts.Peers {
 		addr, err := net.ResolveTCPAddr("tcp", address)
 		if err != nil {
@@ -266,7 +267,7 @@ func bootstrapKad(ctx context.Context, client *goed2k.Client, source, stateDir s
 	}
 }
 
-func (j *ed2kJob) Progress() (engine.Progress, error) {
+func (j *Job) Progress() (engine.Progress, error) {
 drain:
 	for n := 0; n < 32; n++ {
 		select {
@@ -308,7 +309,7 @@ drain:
 	p.Kad = j.client.DHTStatus().KnownNodes
 	return p, nil
 }
-func (j *ed2kJob) Verify(ctx context.Context) error {
+func (j *Job) Verify(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -321,7 +322,7 @@ func (j *ed2kJob) Verify(ctx context.Context) error {
 	}
 	return nil
 }
-func (j *ed2kJob) Close() error {
+func (j *Job) Close() error {
 	j.cancel()
 	j.workers.Wait()
 	j.handle.Pause()
@@ -339,7 +340,7 @@ func (j *ed2kJob) Close() error {
 }
 
 // The adapter owns the session loop. The upstream Client.Start status goroutine is intentionally unused.
-func startEDSession(client *goed2k.Client, discovery bool) error {
+func StartSession(client *goed2k.Client, discovery bool) error {
 	if discovery && client.GetDHTTracker() == nil {
 		client.EnableDHT()
 	}
