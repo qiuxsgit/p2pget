@@ -1,0 +1,83 @@
+# Third-party notices
+
+P2PGet embeds Go libraries. Their copyright and license texts are included in THIRD_PARTY_LICENSES.
+The modified goed2k source is included in the source archive under third_party/goed2k (see PATCHES.md).
+Unmodified anacrolix/torrent v1.63.0 source: https://github.com/anacrolix/torrent/archive/876900f38c650f898128b33dd8ce6893f6a8d339.tar.gz
+
+- github.com/RoaringBitmap/roaring/v2 v2.16.0 — https://pkg.go.dev/github.com/RoaringBitmap/roaring/v2@v2.16.0
+- github.com/alecthomas/atomic v0.1.0-alpha2 — https://pkg.go.dev/github.com/alecthomas/atomic@v0.1.0-alpha2
+- github.com/anacrolix/btree v0.1.1 — https://pkg.go.dev/github.com/anacrolix/btree@v0.1.1
+- github.com/anacrolix/chansync v0.8.0 — https://pkg.go.dev/github.com/anacrolix/chansync@v0.8.0
+- github.com/anacrolix/dht/v2 v2.23.1-0.20260525063928-ec3a9bd99456 — https://pkg.go.dev/github.com/anacrolix/dht/v2@v2.23.1-0.20260525063928-ec3a9bd99456
+- github.com/anacrolix/envpprof v1.4.0 — https://pkg.go.dev/github.com/anacrolix/envpprof@v1.4.0
+- github.com/anacrolix/generics v0.2.0 — https://pkg.go.dev/github.com/anacrolix/generics@v0.2.0
+- github.com/anacrolix/go-utp v0.0.0-20260908033909-9f1664acf866 — https://pkg.go.dev/github.com/anacrolix/go-utp@v0.0.0-20260908033909-9f1664acf866
+- github.com/anacrolix/log v0.17.1-0.20251118025802-918f1157b7bb — https://pkg.go.dev/github.com/anacrolix/log@v0.17.1-0.20251118025802-918f1157b7bb
+- github.com/anacrolix/missinggo v1.3.0 — https://pkg.go.dev/github.com/anacrolix/missinggo@v1.3.0
+- github.com/anacrolix/missinggo/perf v1.0.0 — https://pkg.go.dev/github.com/anacrolix/missinggo/perf@v1.0.0
+- github.com/anacrolix/missinggo/v2 v2.12.0 — https://pkg.go.dev/github.com/anacrolix/missinggo/v2@v2.12.0
+- github.com/anacrolix/multiless v0.4.0 — https://pkg.go.dev/github.com/anacrolix/multiless@v0.4.0
+- github.com/anacrolix/stm v0.5.0 — https://pkg.go.dev/github.com/anacrolix/stm@v0.5.0
+- github.com/anacrolix/sync v0.5.5-0.20251119100342-d78dd1f686f1 — https://pkg.go.dev/github.com/anacrolix/sync@v0.5.5-0.20251119100342-d78dd1f686f1
+- github.com/anacrolix/torrent v1.63.0 — https://pkg.go.dev/github.com/anacrolix/torrent@v1.63.0
+- github.com/anacrolix/upnp v0.1.4 — https://pkg.go.dev/github.com/anacrolix/upnp@v0.1.4
+- github.com/bahlo/generic-list-go v0.2.0 — https://pkg.go.dev/github.com/bahlo/generic-list-go@v0.2.0
+- github.com/benbjohnson/immutable v0.4.1-0.20221220213129-8932b999621d — https://pkg.go.dev/github.com/benbjohnson/immutable@v0.4.1-0.20221220213129-8932b999621d
+- github.com/bits-and-blooms/bitset v1.24.2 — https://pkg.go.dev/github.com/bits-and-blooms/bitset@v1.24.2
+- github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 — https://pkg.go.dev/github.com/bradfitz/iter@v0.0.0-20191230175014-e8f45d346db8
+- github.com/cespare/xxhash/v2 v2.3.0 — https://pkg.go.dev/github.com/cespare/xxhash/v2@v2.3.0
+- github.com/coder/websocket v1.8.15 — https://pkg.go.dev/github.com/coder/websocket@v1.8.15
+- github.com/davecgh/go-spew v1.1.1 — https://pkg.go.dev/github.com/davecgh/go-spew@v1.1.1
+- github.com/dustin/go-humanize v1.0.0 — https://pkg.go.dev/github.com/dustin/go-humanize@v1.0.0
+- github.com/edsrzf/mmap-go v1.1.0 — https://pkg.go.dev/github.com/edsrzf/mmap-go@v1.1.0
+- github.com/go-logr/logr v1.4.4 — https://pkg.go.dev/github.com/go-logr/logr@v1.4.4
+- github.com/go-logr/stdr v1.2.2 — https://pkg.go.dev/github.com/go-logr/stdr@v1.2.2
+- github.com/goed2k/core v0.1.3 — https://pkg.go.dev/github.com/goed2k/core@v0.1.3 — modified, source included
+- github.com/gofrs/flock v0.12.1 — https://pkg.go.dev/github.com/gofrs/flock@v0.12.1
+- github.com/google/btree v1.1.2 — https://pkg.go.dev/github.com/google/btree@v1.1.2
+- github.com/google/go-cmp v0.7.0 — https://pkg.go.dev/github.com/google/go-cmp@v0.7.0
+- github.com/google/uuid v1.6.0 — https://pkg.go.dev/github.com/google/uuid@v1.6.0
+- github.com/huandu/xstrings v1.3.2 — https://pkg.go.dev/github.com/huandu/xstrings@v1.3.2
+- github.com/klauspost/cpuid/v2 v2.2.3 — https://pkg.go.dev/github.com/klauspost/cpuid/v2@v2.2.3
+- github.com/mr-tron/base58 v1.2.0 — https://pkg.go.dev/github.com/mr-tron/base58@v1.2.0
+- github.com/mschoch/smat v0.2.0 — https://pkg.go.dev/github.com/mschoch/smat@v0.2.0
+- github.com/multiformats/go-multihash v0.2.3 — https://pkg.go.dev/github.com/multiformats/go-multihash@v0.2.3
+- github.com/multiformats/go-varint v0.0.6 — https://pkg.go.dev/github.com/multiformats/go-varint@v0.0.6
+- github.com/pion/datachannel v1.5.9 — https://pkg.go.dev/github.com/pion/datachannel@v1.5.9
+- github.com/pion/dtls/v3 v3.0.11 — https://pkg.go.dev/github.com/pion/dtls/v3@v3.0.11
+- github.com/pion/ice/v4 v4.0.2 — https://pkg.go.dev/github.com/pion/ice/v4@v4.0.2
+- github.com/pion/interceptor v0.1.40 — https://pkg.go.dev/github.com/pion/interceptor@v0.1.40
+- github.com/pion/logging v0.2.4 — https://pkg.go.dev/github.com/pion/logging@v0.2.4
+- github.com/pion/mdns/v2 v2.0.7 — https://pkg.go.dev/github.com/pion/mdns/v2@v2.0.7
+- github.com/pion/randutil v0.1.0 — https://pkg.go.dev/github.com/pion/randutil@v0.1.0
+- github.com/pion/rtcp v1.2.15 — https://pkg.go.dev/github.com/pion/rtcp@v1.2.15
+- github.com/pion/rtp v1.8.18 — https://pkg.go.dev/github.com/pion/rtp@v1.8.18
+- github.com/pion/sctp v1.8.33 — https://pkg.go.dev/github.com/pion/sctp@v1.8.33
+- github.com/pion/sdp/v3 v3.0.9 — https://pkg.go.dev/github.com/pion/sdp/v3@v3.0.9
+- github.com/pion/srtp/v3 v3.0.4 — https://pkg.go.dev/github.com/pion/srtp/v3@v3.0.4
+- github.com/pion/stun/v3 v3.0.0 — https://pkg.go.dev/github.com/pion/stun/v3@v3.0.0
+- github.com/pion/transport/v3 v3.0.7 — https://pkg.go.dev/github.com/pion/transport/v3@v3.0.7
+- github.com/pion/transport/v4 v4.0.1 — https://pkg.go.dev/github.com/pion/transport/v4@v4.0.1
+- github.com/pion/turn/v4 v4.0.0 — https://pkg.go.dev/github.com/pion/turn/v4@v4.0.0
+- github.com/pion/webrtc/v4 v4.0.0 — https://pkg.go.dev/github.com/pion/webrtc/v4@v4.0.0
+- github.com/pkg/errors v0.9.1 — https://pkg.go.dev/github.com/pkg/errors@v0.9.1
+- github.com/protolambda/ctxlock v0.1.0 — https://pkg.go.dev/github.com/protolambda/ctxlock@v0.1.0
+- github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 — https://pkg.go.dev/github.com/rs/dnscache@v0.0.0-20211102005908-e0241e321417
+- github.com/spaolacci/murmur3 v1.1.0 — https://pkg.go.dev/github.com/spaolacci/murmur3@v1.1.0
+- github.com/tidwall/btree v1.8.1 — https://pkg.go.dev/github.com/tidwall/btree@v1.8.1
+- github.com/wlynxg/anet v0.0.5 — https://pkg.go.dev/github.com/wlynxg/anet@v0.0.5
+- go.etcd.io/bbolt v1.3.6 — https://pkg.go.dev/go.etcd.io/bbolt@v1.3.6
+- go.opentelemetry.io/auto/sdk v1.2.1 — https://pkg.go.dev/go.opentelemetry.io/auto/sdk@v1.2.1
+- go.opentelemetry.io/otel v1.45.0 — https://pkg.go.dev/go.opentelemetry.io/otel@v1.45.0
+- go.opentelemetry.io/otel/metric v1.45.0 — https://pkg.go.dev/go.opentelemetry.io/otel/metric@v1.45.0
+- go.opentelemetry.io/otel/trace v1.45.0 — https://pkg.go.dev/go.opentelemetry.io/otel/trace@v1.45.0
+- golang.org/x/crypto v0.57.0 — https://pkg.go.dev/golang.org/x/crypto@v0.57.0
+- golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6 — https://pkg.go.dev/golang.org/x/exp@v0.0.0-20251113190631-e25ba8c21ef6
+- golang.org/x/net v0.60.0 — https://pkg.go.dev/golang.org/x/net@v0.60.0
+- golang.org/x/sync v0.23.0 — https://pkg.go.dev/golang.org/x/sync@v0.23.0
+- golang.org/x/sys v0.48.0 — https://pkg.go.dev/golang.org/x/sys@v0.48.0
+- golang.org/x/text v0.42.0 — https://pkg.go.dev/golang.org/x/text@v0.42.0
+- golang.org/x/time v0.14.0 — https://pkg.go.dev/golang.org/x/time@v0.14.0
+- lukechampine.com/blake3 v1.1.6 — https://pkg.go.dev/lukechampine.com/blake3@v1.1.6
+
+- golang.org/x/term v0.46.0 — https://pkg.go.dev/golang.org/x/term@v0.46.0 — terminal sizing and detection
