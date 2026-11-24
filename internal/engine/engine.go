@@ -29,5 +29,8 @@ type Progress struct {
 type Job interface {
 	Progress() (Progress, error)
 	Verify(context.Context) error
+	// Path is the downloaded file, or the directory of a multi-file torrent; it may be
+	// empty until the engine knows the file names.
+	Path() string
 	Close() error
 }

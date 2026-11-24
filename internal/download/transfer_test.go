@@ -3,6 +3,7 @@ package download
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	goed2k "github.com/goed2k/core"
+	"github.com/qiuxsgit/p2pget/internal/claim"
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/engine/bt"
 	"github.com/qiuxsgit/p2pget/internal/engine/ed2k"
@@ -75,10 +77,9 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	}
 	opts := testOptions(filepath.Join(root, "download"))
 	opts.Peers = []string{seed.ListenAddrs()[0].String()}
-	task := filepath.Join(opts.Dir, "bt-"+req.ID)
-	state := filepath.Join(task, ".p2pget")
+	state := filepath.Join(opts.Dir, ".p2pget", "bt-"+req.ID)
 	os.MkdirAll(state, 0755)
-	job, err := bt.New(req, opts, task, state)
+	job, err := bt.New(req, opts, state)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +107,11 @@ func TestBTPartialDownloadAndRestart(t *testing.T) {
 	if err = Run(ctx, req, opts, &output); err != nil {
 		t.Fatalf("restart: %v\n%s", err, output.String())
 	}
-	actual, err := os.ReadFile(filepath.Join(task, "fixture.bin"))
+	target := filepath.Join(opts.Dir, "fixture.bin")
+	if !bytes.Contains(output.Bytes(), []byte(target)) {
+		t.Fatalf("completion message does not name %s:\n%s", target, output.String())
+	}
+	actual, err := os.ReadFile(target)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +182,7 @@ func TestED2KRealPeerTransferAndRestart(t *testing.T) {
 	if err = Run(ctx, req, opts, &output); err != nil {
 		t.Fatalf("ED2K transfer: %v\n%s", err, output.String())
 	}
-	target := filepath.Join(opts.Dir, "ed2k-"+req.ID, "fixture.bin")
+	target := filepath.Join(opts.Dir, "fixture.bin")
 	actual, err := os.ReadFile(target)
 	if err != nil {
 		t.Fatal(err)
@@ -188,5 +193,28 @@ func TestED2KRealPeerTransferAndRestart(t *testing.T) {
 	opts.Peers = nil
 	if err = Run(ctx, req, opts, io.Discard); err != nil {
 		t.Fatalf("ED2K restart failed: %v", err)
+	}
+}
+
+func TestRunRefusesExistingFileOfAnotherTask(t *testing.T) {
+	root := t.TempDir()
+	req, err := link.Parse("ed2k://|file|fixture.bin|1024|0123456789abcdef0123456789abcdef|/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts := testOptions(root)
+	target := filepath.Join(root, "fixture.bin")
+	if err = os.WriteFile(target, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 { // The state left by a refused run must not turn the next run into a resume.
+		err = Run(context.Background(), req, opts, io.Discard)
+		var conflict *claim.ConflictError
+		if !errors.As(err, &conflict) || len(conflict.Paths) != 1 || conflict.Paths[0] != target {
+			t.Fatalf("want conflict on %s, got %v", target, err)
+		}
+	}
+	if raw, _ := os.ReadFile(target); string(raw) != "keep" {
+		t.Fatal("existing file changed")
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qiuxsgit/p2pget/internal/claim"
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/engine/bt"
 	"github.com/qiuxsgit/p2pget/internal/engine/ed2k"
@@ -19,10 +20,9 @@ import (
 	"github.com/qiuxsgit/p2pget/internal/progress"
 )
 
-// Run downloads req into its task directory under opts.Dir, resuming saved state.
+// Run downloads req directly into opts.Dir, keeping resume state under opts.Dir/.p2pget.
 func Run(ctx context.Context, req link.Request, opts engine.Options, out io.Writer) (retErr error) {
-	taskDir := filepath.Join(opts.Dir, req.Kind+"-"+req.ID)
-	stateDir := filepath.Join(taskDir, ".p2pget")
+	stateDir := filepath.Join(opts.Dir, claim.StateDirName, req.Kind+"-"+req.ID)
 	release, err := acquireTaskLock(stateDir)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func Run(ctx context.Context, req link.Request, opts engine.Options, out io.Writ
 		return err
 	}
 	fmt.Fprintf(out, "协议：%s  |  连接上限：%d  |  下载不限速\n", strings.ToUpper(req.Kind), opts.Connections)
-	fmt.Fprintln(out, "保存目录：", taskDir)
+	fmt.Fprintln(out, "保存目录：", opts.Dir)
 	fmt.Fprintln(out, "按 Ctrl+C 保存进度并退出；再次输入同一链接续传。")
 	if opts.UploadKiB > 0 {
 		fmt.Fprintf(out, "下载期间会上传已获得的分块，上限 %d KiB/s；完成后停止。\n", opts.UploadKiB)
@@ -49,9 +49,9 @@ func Run(ctx context.Context, req link.Request, opts engine.Options, out io.Writ
 	}
 	var job engine.Job
 	if req.Kind == "bt" {
-		job, err = bt.New(req, opts, taskDir, stateDir)
+		job, err = bt.New(req, opts, stateDir)
 	} else {
-		job, err = ed2k.New(ctx, req, opts, taskDir, stateDir)
+		job, err = ed2k.New(ctx, req, opts, stateDir)
 	}
 	if err != nil {
 		return err
@@ -82,12 +82,13 @@ func Run(ctx context.Context, req link.Request, opts engine.Options, out io.Writ
 			if err = job.Verify(ctx); err != nil {
 				return err
 			}
+			path := job.Path()
 			if err = job.Close(); err != nil {
 				job = nil
 				return err
 			}
 			job = nil
-			fmt.Fprintln(out, "下载完成，校验通过。文件位于：", taskDir)
+			fmt.Fprintln(out, "下载完成，校验通过。文件位于：", path)
 			return nil
 		}
 		select {

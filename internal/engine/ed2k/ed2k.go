@@ -20,6 +20,7 @@ import (
 	goed2k "github.com/goed2k/core"
 	"github.com/goed2k/core/disk"
 	"github.com/goed2k/core/protocol"
+	"github.com/qiuxsgit/p2pget/internal/claim"
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/fsutil"
 	"github.com/qiuxsgit/p2pget/internal/link"
@@ -89,7 +90,7 @@ func (s *taskEDStore) Save(state *goed2k.ClientState) error {
 	return fsutil.AtomicWrite(s.path, raw)
 }
 
-func New(ctx context.Context, req link.Request, opts engine.Options, taskDir, stateDir string) (*Job, error) {
+func New(ctx context.Context, req link.Request, opts engine.Options, stateDir string) (*Job, error) {
 	jobCtx, cancel := context.WithCancel(ctx)
 	initialized := false
 	defer func() {
@@ -121,7 +122,10 @@ func New(ctx context.Context, req link.Request, opts engine.Options, taskDir, st
 	settings.PreallocateDiskSpace = false
 	settings.UseSparseFiles = true
 	settings.EnableWebDownload = false
-	target := filepath.Join(taskDir, req.Name)
+	target := filepath.Join(opts.Dir, req.Name)
+	if err := claim.Claim(opts.Dir, stateDir, []string{target}); err != nil {
+		return nil, err
+	}
 	// Refuse an existing symlink instead of writing through it.
 	if stat, err := os.Lstat(target); err == nil && !stat.Mode().IsRegular() {
 		return nil, fmt.Errorf("目标不是普通文件：%s", target)
@@ -322,6 +326,10 @@ func (j *Job) Verify(ctx context.Context) error {
 	}
 	return nil
 }
+
+// Path returns the downloaded file.
+func (j *Job) Path() string { return j.path }
+
 func (j *Job) Close() error {
 	j.cancel()
 	j.workers.Wait()

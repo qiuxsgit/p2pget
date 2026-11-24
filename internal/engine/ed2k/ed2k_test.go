@@ -71,10 +71,9 @@ func TestED2KPartialResumeWhileUploading(t *testing.T) {
 	opts.Peers = []string{seedAddress}
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
-	task := filepath.Join(opts.Dir, "ed2k-"+req.ID)
-	state := filepath.Join(task, ".p2pget")
+	state := filepath.Join(opts.Dir, ".p2pget", "ed2k-"+req.ID)
 	os.MkdirAll(state, 0755)
-	job, err := New(ctx, req, opts, task, state)
+	job, err := New(ctx, req, opts, state)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +96,7 @@ func TestED2KPartialResumeWhileUploading(t *testing.T) {
 	if !interrupted {
 		t.Fatal("did not observe an interrupted multi-part download")
 	}
-	job, err = New(ctx, req, opts, task, state)
+	job, err = New(ctx, req, opts, state)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,10 +107,9 @@ func TestED2KPartialResumeWhileUploading(t *testing.T) {
 	secondOpts := testOptions(filepath.Join(root, "second"))
 	secondOpts.UploadKiB = 4096
 	secondOpts.Peers = []string{fmt.Sprintf("127.0.0.1:%d", job.client.Session().GetListenPort())}
-	secondTask := filepath.Join(secondOpts.Dir, "ed2k-"+req.ID)
-	secondState := filepath.Join(secondTask, ".p2pget")
+	secondState := filepath.Join(secondOpts.Dir, ".p2pget", "ed2k-"+req.ID)
 	os.MkdirAll(secondState, 0755)
-	second, err := New(ctx, req, secondOpts, secondTask, secondState)
+	second, err := New(ctx, req, secondOpts, secondState)
 	if err != nil {
 		t.Fatal(err)
 	}

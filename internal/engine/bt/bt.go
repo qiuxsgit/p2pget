@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
+	"github.com/qiuxsgit/p2pget/internal/claim"
 	"github.com/qiuxsgit/p2pget/internal/engine"
 	"github.com/qiuxsgit/p2pget/internal/fsutil"
 	"github.com/qiuxsgit/p2pget/internal/link"
@@ -30,13 +32,40 @@ type Job struct {
 	client       *torrent.Client
 	torrent      *torrent.Torrent
 	storage      storage.ClientImplCloser
+	root         string
+	stateDir     string
 	metadataPath string
 	prepared     bool
 }
 
-func New(req link.Request, opts engine.Options, taskDir, stateDir string) (*Job, error) {
+// filePath places a single-file torrent's file directly in the download root and a
+// multi-file torrent's files under a directory named after the torrent.
+func filePath(opts storage.FilePathMakerOpts) string {
+	name := opts.Info.BestName()
+	path := opts.File.BestPath()
+	if isSingleFile(opts.Info) {
+		return name
+	}
+	if name == metainfo.NoName {
+		return filepath.Join(path...)
+	}
+	return filepath.Join(append([]string{name}, path...)...)
+}
+
+// isSingleFile reports whether info describes one file. Info.IsDir is always true for
+// v2 infos, whose file tree names the single file inside the root directory.
+func isSingleFile(info *metainfo.Info) bool {
+	files := info.UpvertedFiles()
+	if len(files) != 1 {
+		return false
+	}
+	path := files[0].BestPath()
+	return len(path) == 0 || (len(path) == 1 && path[0] == info.BestName())
+}
+
+func New(req link.Request, opts engine.Options, stateDir string) (*Job, error) {
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = taskDir
+	cfg.DataDir = opts.Dir
 	cfg.ListenPort = 0
 	cfg.NoDefaultPortForwarding = true
 	cfg.Seed = false
@@ -49,7 +78,7 @@ func New(req link.Request, opts engine.Options, taskDir, stateDir string) (*Job,
 	if opts.UploadKiB > 0 {
 		cfg.UploadRateLimiter = rate.NewLimiter(rate.Limit(opts.UploadKiB*1024), max(opts.UploadKiB*1024, 64*1024))
 	}
-	st := storage.NewFileOpts(storage.NewFileClientOpts{ClientBaseDir: taskDir, PieceCompletion: storage.NewMapPieceCompletion(), UsePartFiles: g.Some(false), DisableMmap: true, Logger: opts.Logger})
+	st := storage.NewFileOpts(storage.NewFileClientOpts{ClientBaseDir: opts.Dir, FilePathMaker: filePath, PieceCompletion: storage.NewMapPieceCompletion(), UsePartFiles: g.Some(false), DisableMmap: true, Logger: opts.Logger})
 	cfg.DefaultStorage = st
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -86,7 +115,34 @@ func New(req link.Request, opts engine.Options, taskDir, stateDir string) (*Job,
 		return nil, err
 	}
 	t.SetMaxEstablishedConns(opts.Connections)
-	return &Job{client: client, torrent: t, storage: st, metadataPath: metadataPath}, nil
+	return &Job{client: client, torrent: t, storage: st, root: opts.Dir, stateDir: stateDir, metadataPath: metadataPath}, nil
+}
+
+func (j *Job) targets(info *metainfo.Info) []string {
+	var targets []string
+	for _, file := range info.UpvertedFiles() {
+		target := filepath.Join(j.root, filePath(storage.FilePathMakerOpts{Info: info, File: &file}))
+		// Same-length padding files may share a path.
+		if !slices.Contains(targets, target) {
+			targets = append(targets, target)
+		}
+	}
+	return targets
+}
+
+// Path returns the downloaded file, or the torrent's directory for multi-file torrents.
+// It is empty until the torrent info is known.
+func (j *Job) Path() string {
+	select {
+	case <-j.torrent.GotInfo():
+	default:
+		return ""
+	}
+	info := j.torrent.Info()
+	if !isSingleFile(info) && info.BestName() == metainfo.NoName {
+		return j.root
+	}
+	return filepath.Join(j.root, info.BestName())
 }
 
 func (j *Job) Progress() (engine.Progress, error) {
@@ -95,6 +151,9 @@ func (j *Job) Progress() (engine.Progress, error) {
 	case <-t.GotInfo():
 		if !j.prepared {
 			if err := link.ValidateTorrentInfo(t.Info()); err != nil {
+				return engine.Progress{}, err
+			}
+			if err := claim.Claim(j.root, j.stateDir, j.targets(t.Info())); err != nil {
 				return engine.Progress{}, err
 			}
 			mi := t.Metainfo()
